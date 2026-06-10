@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>학교 추가 프린트 변형문제 - 기말고사 대비</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:'Segoe UI','Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .card {
+    background:#fff; border-radius:20px; box-shadow:0 20px 60px rgba(0,0,0,.3);
+    width:100%; max-width:680px; padding:36px 32px; max-height:92vh; overflow-y:auto;
+  }
+  h1 { font-size:1.5rem; color:#4a3f8f; margin-bottom:8px; text-align:center; }
+  .sub { text-align:center; color:#888; margin-bottom:24px; font-size:.95rem; }
+  .badge { display:inline-block; background:#eee9ff; color:#6b5bd2; font-size:.78rem; padding:3px 10px; border-radius:20px; margin-bottom:10px; }
+  .progress-wrap { background:#eee; height:10px; border-radius:5px; margin-bottom:20px; overflow:hidden; }
+  .progress-bar { height:100%; background:linear-gradient(90deg,#667eea,#764ba2); border-radius:5px; transition:width .3s; }
+  .qnum { color:#999; font-size:.9rem; margin-bottom:6px; }
+  .qtext { font-size:1.15rem; font-weight:600; color:#333; margin-bottom:20px; line-height:1.55; }
+  .choices button {
+    display:block; width:100%; text-align:left; padding:14px 16px; margin-bottom:10px;
+    border:2px solid #e4e0f5; border-radius:12px; background:#faf9ff; font-size:1.02rem;
+    cursor:pointer; transition:all .15s; line-height:1.4; font-family:inherit;
+  }
+  .choices button:hover { border-color:#a99ce8; background:#f1eeff; }
+  .choices button.selected { border-color:#667eea; background:#e6e2ff; font-weight:700; }
+  .keynum { display:inline-block; background:#667eea; color:#fff; width:24px; height:24px; border-radius:6px; text-align:center; line-height:24px; font-size:.85rem; margin-right:10px; font-weight:700; }
+  input[type=text] {
+    width:100%; padding:14px 16px; font-size:1.1rem; border:2px solid #e4e0f5; border-radius:12px;
+    outline:none; margin-bottom:10px; font-family:inherit;
+  }
+  input[type=text]:focus { border-color:#667eea; }
+  .btn {
+    display:block; width:100%; padding:15px; border:none; border-radius:12px;
+    background:linear-gradient(90deg,#667eea,#764ba2); color:#fff; font-size:1.08rem; font-weight:700;
+    cursor:pointer; margin-top:8px; transition:opacity .15s; font-family:inherit;
+  }
+  .btn:hover { opacity:.9; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; }
+  .btn-green { background:linear-gradient(90deg,#11998e,#38ef7d); }
+  .btn-yellow { background:linear-gradient(90deg,#f7971e,#ffd200); color:#5a4500; }
+  .hint { text-align:center; color:#aaa; font-size:.85rem; margin-top:12px; }
+  .score-big { font-size:3rem; font-weight:800; text-align:center; color:#4a3f8f; margin:10px 0; }
+  .score-sub { text-align:center; color:#666; margin-bottom:20px; }
+  .review-item { border:2px solid #ffd4d4; background:#fff8f8; border-radius:14px; padding:16px; margin-bottom:14px; }
+  .review-item.correct { border-color:#c9ecd4; background:#f6fff9; }
+  .review-q { font-weight:700; color:#333; margin-bottom:8px; line-height:1.5; }
+  .review-line { font-size:.95rem; margin-bottom:4px; line-height:1.5; }
+  .wrong-ans { color:#d33; font-weight:600; }
+  .right-ans { color:#119955; font-weight:700; }
+  .explain { background:#f3f0ff; border-left:4px solid #8a7be8; padding:10px 12px; border-radius:0 8px 8px 0; margin-top:8px; font-size:.93rem; color:#4a4470; line-height:1.6; }
+  .final-msg { text-align:center; font-size:1.25rem; font-weight:700; color:#e0719b; margin:24px 0 8px; }
+  .section-tag { font-size:.75rem; color:#8a7be8; background:#f0edff; display:inline-block; padding:2px 8px; border-radius:10px; margin-bottom:6px; }
+  u { text-decoration:underline; text-underline-offset:3px; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="card" id="app">
+
+  <!-- 시작 화면 -->
+  <div id="startScreen">
+    <h1>📚 학교 추가 프린트 변형문제</h1>
+    <p class="sub">기말고사 대비 · 프린트 전 범위 (총 <span id="totalCount"></span>문항)<br>거절/당부/약속 표현 · to부정사 · 현재완료 · 구동사 · 3과 단어</p>
+    <input type="text" id="nameInput" placeholder="이름을 입력하세요" autocomplete="off">
+    <button class="btn" id="startBtn">시작하기 (Enter)</button>
+    <p class="hint">💡 객관식은 숫자키 ①=1 ②=2 ③=3 ④=4, 입력 후 Enter로 다음 문제!</p>
+  </div>
+
+  <!-- 문제 화면 -->
+  <div id="quizScreen" class="hidden">
+    <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    <div class="section-tag" id="sectionTag"></div>
+    <div class="qnum" id="qNum"></div>
+    <div class="qtext" id="qText"></div>
+    <div class="choices" id="choiceArea"></div>
+    <button class="btn" id="nextBtn">다음 (Enter)</button>
+    <p class="hint" id="quizHint"></p>
+  </div>
+
+  <!-- 결과 화면 -->
+  <div id="resultScreen" class="hidden">
+    <h1>🎉 결과 발표</h1>
+    <div class="score-big" id="scoreBig"></div>
+    <div class="score-sub" id="scoreSub"></div>
+    <button class="btn btn-yellow" id="copyBtn">📋 지나티처에게 보낼 결과 메시지 복사</button>
+    <p class="hint">복사한 뒤 카카오톡에 붙여넣기 하면 끝!</p>
+    <h1 style="font-size:1.2rem; margin:24px 0 12px;">📝 문제별 정답 & 해설</h1>
+    <div id="reviewArea"></div>
+    <div class="final-msg">수고했습니당 ~~~ ㅎㅎㅎ</div>
+    <button class="btn" onclick="location.reload()">다시 풀기</button>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+// ─── 거절 표현 ───
+{sec:"거절 표현", type:"mc", q:"다음 중 '하고 싶지 않다'고 거절하는 표현이 <u>아닌</u> 것은?",
+ c:["I'd rather not.","I don't feel like it.","I'm not in the mood.","Make sure."], a:3,
+ exp:"①②③은 모두 정중한 거절 표현이에요. ④ Make sure.는 '꼭 ~해'라고 당부하는 표현입니다."},
+{sec:"거절 표현", type:"mc", q:"I'm not in the ___. (그럴 기분이 아니야.)",
+ c:["mind","mood","mode","moon"], a:1,
+ exp:"I'm not in the mood. = 그럴 기분이 아니야. mood는 '기분'이라는 뜻이에요."},
+// ─── to부정사 목적어 ───
+{sec:"to부정사", type:"mc", q:"다음 중 to부정사를 목적어로 취하는 동사가 <u>아닌</u> 것은?",
+ c:["promise","manage","enjoy","refuse"], a:2,
+ exp:"to부정사를 목적어로 취하는 동사: decide, expect, hope, plan, promise, want, wish, agree, learn, need, choose, manage, refuse. enjoy는 동명사(-ing)를 목적어로 취해요."},
+{sec:"to부정사", type:"sa", q:"She promised (call) me tonight.<br>괄호 안의 동사를 알맞은 형태로 쓰세요.",
+ ans:["to call"],
+ exp:"promise는 to부정사를 목적어로 취하는 동사 → promised to call. (decide/expect/hope/plan/want/wish/agree/learn/need/choose/manage/refuse도 같은 패턴!)"},
+{sec:"to부정사", type:"mc", q:"refuse의 뜻은?",
+ c:["거절하다","약속하다","기대하다","동의하다"], a:0,
+ exp:"refuse 거절하다 / promise 약속하다 / expect 기대하다 / agree 동의하다 — 넷 다 to부정사를 목적어로 취하는 동사예요."},
+{sec:"to부정사", type:"mc", q:"I ___ to learn Chinese next year.",
+ c:["enjoyed","decided","finished","gave up"], a:1,
+ exp:"빈칸 뒤에 to learn(to부정사)이 있으므로 to부정사를 목적어로 취하는 decide가 정답. enjoy, finish, give up은 동명사를 취해요."},
+// ─── 단어 (파생어) ───
+{sec:"단어", type:"mc", q:"expectation의 뜻은?",
+ c:["기대, 예상","무게","길이","욕구"], a:0,
+ exp:"expect(기대하다, expect that S+V) → 명사형 expectation(기대, 예상). expected 예상된 ↔ unexpected 예상치 못한"},
+{sec:"단어", type:"mc", q:"unexpected의 뜻은?",
+ c:["예상된","예상치 못한, 뜻밖의","줄무늬가 있는","무늬가 없는"], a:1,
+ exp:"un(반대) + expected(예상된) = unexpected 예상치 못한, 뜻밖의"},
+{sec:"단어", type:"mc", q:"striped의 뜻은?",
+ c:["무늬가 없는","줄무늬가 있는","털이 많은","균일한"], a:1,
+ exp:"stripe 줄무늬 → striped 줄무늬가 있는. 비교: plain 무늬가 없는, strip (얇은) 조각/벗기다"},
+{sec:"단어", type:"mc", q:"plain의 뜻은?",
+ c:["줄무늬가 있는","무늬가 없는, 단순한","더러운","부가적인"], a:1,
+ exp:"plain 무늬가 없는, 단순한. striped(줄무늬가 있는)와 반대 개념으로 자주 출제돼요."},
+{sec:"단어", type:"mc", q:"furry의 뜻은?",
+ c:["털이 많은, 털로 덮인","무거운","무게가 없는","줄무늬의"], a:0,
+ exp:"fur 털 → furry 털이 많은. cf. weigh 무게가 나가다, overweight 과체중의, weightless 무게가 없는"},
+{sec:"단어", type:"sa", q:"long의 명사형은? (뜻: 길이)", ans:["length"],
+ exp:"long – length(길이). cf. at length 마침내, 길게·상세히"},
+{sec:"단어", type:"sa", q:"strong의 명사형은? (뜻: 힘)", ans:["strength"],
+ exp:"strong – strength(힘). 형용사→명사 짝: long–length, strong–strength, wide–width, high–height"},
+{sec:"단어", type:"sa", q:"wide의 명사형은? (뜻: 폭, 너비)", ans:["width"],
+ exp:"wide – width(폭, 너비)"},
+{sec:"단어", type:"sa", q:"high의 명사형은? (뜻: 높이)", ans:["height"],
+ exp:"high – height(높이). 철자 주의! heigth(X) height(O)"},
+// ─── 현재완료 ───
+{sec:"현재완료", type:"mc", q:"Have you ever ___ to Singapore?",
+ c:["gone","been","go","being"], a:1,
+ exp:"'~에 가 본 적 있다'(경험)는 have been to. have gone to는 '가버려서 지금 없다'(결과). ever와 함께 경험을 물을 때는 been!"},
+{sec:"현재완료", type:"mc", q:"He has gone to America. 의 올바른 의미는?",
+ c:["미국에 가 본 적이 있다","미국에 가버려서 지금 여기에 없다","미국에 막 다녀왔다","미국에 가고 싶어한다"], a:1,
+ exp:"have gone to = ~에 가버렸다(그래서 지금 여기 없음, 결과). have been to = ~에 가 본 적 있다(경험) / ~에 다녀왔다(완료)"},
+{sec:"현재완료", type:"mc", q:"I have ___ to Hong Kong three times.",
+ c:["gone","been","go","going"], a:1,
+ exp:"three times(세 번)처럼 횟수가 나오면 경험 → have been to. 내가 '가버리고 없다'(gone)고 하면 말이 안 되겠죠?"},
+{sec:"현재완료", type:"mc", q:"I have just ___ to the store. (방금 다녀왔다)",
+ c:["gone","been","go","being"], a:1,
+ exp:"have just been to = ~에 막 다녀왔다(완료). 주어 I가 지금 말하고 있으므로 gone(가버리고 없음)은 불가능!"},
+{sec:"현재완료", type:"mc", q:"How long ___ you worked here?",
+ c:["do","are","have","did"], a:2,
+ exp:"How long have you worked here? = 여기서 얼마나 오래 일해 왔나요? (현재완료 '계속' 용법: How long + have + 주어 + p.p.)"},
+// ─── 약속 정하기 ───
+{sec:"약속 정하기", type:"mc", q:"Can you make it ___ 7 o'clock?",
+ c:["at","on","in","for"], a:0,
+ exp:"시간 앞에는 at: Can you make it at + 시간? / Are you available at + 시간? 날짜·요일 앞에는 on을 써요."},
+{sec:"약속 정하기", type:"mc", q:"Are you free ___ Friday?",
+ c:["at","on","in","of"], a:1,
+ exp:"날짜·요일 앞에는 on: Are you free on + 날짜/요일? 시간 앞에는 at: Are you free at + 시간?"},
+{sec:"약속 정하기", type:"sa", q:"몇 시가 괜찮으세요? = What time ___ for you?", ans:["works"],
+ exp:"What time works for you? / Does next time work for you? 여기서 work는 '(시간이) 괜찮다, 가능하다'라는 뜻!"},
+{sec:"약속 정하기", type:"mc", q:"다음 중 약속을 정하는 표현이 <u>아닌</u> 것은?",
+ c:["When is a good time for you?","Do you have any time this week?","Are you available at 3?","I'm afraid I can't."], a:3,
+ exp:"④는 거절 표현이에요. 약속 정하기: Can you make it at~? / What time works for you? / How about + 시간? / Let's meet at 장소 at 시간 등"},
+{sec:"약속 정하기", type:"mc", q:"Let's meet ___ the park ___ 5. 빈칸에 알맞은 것은?",
+ c:["at / at","on / at","at / on","in / on"], a:0,
+ exp:"Let's meet at + 장소 at + 시간. 장소도 at, 시간도 at!"},
+// ─── 거절하기·당부하기 ───
+{sec:"거절하기", type:"mc", q:"I'd love to, but I have other ___. (거절)",
+ c:["plans","times","secrets","matches"], a:0,
+ exp:"I'd love to, but I have other plans. = 그러고 싶지만 다른 약속(계획)이 있어. 부드러운 거절 표현이에요. cf. Sorry, but I can't. / I'm afraid I can't."},
+{sec:"당부하기", type:"mc", q:"___ to finish your homework before bed. (당부)",
+ c:["Make","Be sure","Forget","Look"], a:1,
+ exp:"Be sure to + 동사원형 = 꼭 ~해라. 당부 표현 3총사: Make sure. / Be sure to ~ / Don't forget to ~ / Remember to ~"},
+{sec:"당부하기", type:"mc", q:"Don't forget ___ your umbrella.",
+ c:["bring","bringing","to bring","brought"], a:2,
+ exp:"Don't forget to + 동사원형 = ~할 것을 잊지 마. Remember to call me when you're done.도 같은 패턴이에요."},
+// ─── 구동사 ───
+{sec:"구동사", type:"mc", q:"구동사(phrasal verb)에 대한 설명으로 알맞은 것은?",
+ c:["한 단어로 된 동사","두 단어가 결합하여 새로운 뜻이 되는 동사","항상 목적어가 없는 동사","명사로만 쓰이는 단어"], a:1,
+ exp:"구동사 = 두 단어가 결합하여 새로운 뜻이 되는 동사 (타동사+부사 / 자동사+전치사). 구동사를 만드는 전치사: in, on, out, off, up, down"},
+{sec:"구동사", type:"mc", q:"call off의 뜻은?",
+ c:["전화하다","배웅하다","취소하다, 중단하다","제출하다"], a:2,
+ exp:"call off 취소하다, 중단하다. The game was called off. = 경기가 취소되었다."},
+{sec:"구동사", type:"mc", q:"see off의 뜻은?",
+ c:["~를 배웅하다","바라보다","취소하다","벗다"], a:0,
+ exp:"see off ~를 배웅하다. I went to the airport to see her off. = 그녀를 배웅하러 공항에 갔다."},
+{sec:"구동사", type:"mc", q:"hand in의 뜻은?",
+ c:["미루다","제출하다","입다","포기하다"], a:1,
+ exp:"hand in 제출하다 / put off 미루다 / put on 입다 / give up 포기하다 / take off 벗다 / pick up 줍다"},
+{sec:"구동사", type:"mc", q:"다음 중 어법상 <u>틀린</u> 것은?",
+ c:["turn the light on","turn off the light","turn it off","turn off it"], a:3,
+ exp:"목적어가 명사면 turn the light on / turn off the light 둘 다 가능. 하지만 목적어가 대명사(it)면 반드시 [타동사 + 대명사 + 부사] 순서: turn it off (O), turn off it (X), pick it up (O)"},
+{sec:"구동사", type:"mc", q:"Pick ___ ! (그것을 주워!) 올바른 표현은?",
+ c:["it up","up it","it on","on it"], a:0,
+ exp:"대명사 목적어는 동사와 부사 사이에! pick it up (O), pick up it (X)"},
+// ─── 3과 단어 ───
+{sec:"3과 단어", type:"mc", q:"The movie was quite good. 에서 quite와 바꿔 쓸 수 있는 말은?",
+ c:["pretty","plain","foul","main"], a:0,
+ exp:"quite = pretty 꽤, 매우; 완전히, 정말로. The movie was pretty good."},
+{sec:"3과 단어", type:"mc", q:"match의 뜻이 <u>아닌</u> 것은?",
+ c:["어울리다, 일치하다","성냥","시합","광산"], a:3,
+ exp:"match 어울리다·일치하다 / 성냥 / 시합 (= competition, contest). 광산은 mine이에요."},
+{sec:"3과 단어", type:"mc", q:"keep a secret의 뜻은?",
+ c:["비밀을 지키다","공개하다","조립하다","주장하다"], a:0,
+ exp:"keep a secret 비밀을 지키다 / in secret 남몰래, 비공개적으로 / in public 공개적으로"},
+{sec:"3과 단어", type:"mc", q:"thanks to(~덕분에)와 바꿔 쓸 수 <u>없는</u> 것은?",
+ c:["owing to","due to","on account of","instead of"], a:3,
+ exp:"thanks to = owing to = due to = on account of (~덕분에, ~때문에). instead of는 '~대신에'라는 뜻이에요."},
+{sec:"3과 단어", type:"mc", q:"수량이 적은 것부터 많은 순서로 바르게 나열한 것은?",
+ c:["a few < several < many","several < a few < many","many < several < a few","a few < many < several"], a:0,
+ exp:"a few(약간) < several(몇몇의) < many(많은)"},
+{sec:"3과 단어", type:"mc", q:"unite와 뜻이 같은 것은?",
+ c:["join, come together","argue","compete","desire"], a:0,
+ exp:"unite = join = come together (합치다, 연합하다)"},
+{sec:"3과 단어", type:"mc", q:"put together의 뜻은?",
+ c:["조립하다","취소하다","배웅하다","꺼내다"], a:0,
+ exp:"put together 조립하다. cf. call off 취소하다, see off 배웅하다, pull out 꺼내다"},
+{sec:"3과 단어", type:"mc", q:"spot의 뜻 두 가지를 바르게 짝지은 것은?",
+ c:["점 / 알아채다","줄무늬 / 벗기다","시합 / 어울리다","광산 / 광부"], a:0,
+ exp:"spot ① 점 ② 알아채다, 발견하다"},
+{sec:"3과 단어", type:"mc", q:"I argued ___ my brother yesterday. (말다툼했다)",
+ c:["with","about","that","to"], a:0,
+ exp:"argue with + 사람 (~와 말다툼하다) / argue about + 주제 (~에 대해 다투다) / argue that + S V (~라고 주장하다)"},
+{sec:"3과 단어", type:"mc", q:"They argued ___ money. (돈에 대해 다퉜다)",
+ c:["with","about","that","of"], a:1,
+ exp:"argue about + 주제 = ~에 대해 다투다. argue with + 사람, argue that + 주어 동사(주장하다)와 구분!"},
+{sec:"3과 단어", type:"mc", q:"찬반을 나눠서 하는 공식 토론을 뜻하는 단어는?",
+ c:["argue","discuss","debate","match"], a:2,
+ exp:"argue 싸우듯 말함 / discuss 차분하게 논의 / debate 찬반을 나눠서 하는 공식 토론"},
+{sec:"3과 단어", type:"mc", q:"competition과 뜻이 같지 <u>않은</u> 것은?",
+ c:["contest","match","cooperation","시합, 대회"], a:2,
+ exp:"competition = contest = match (시합, 대회). cooperation은 collaboration과 같은 말로 '협력'이라는 뜻!"},
+{sec:"3과 단어", type:"sa", q:"compete(경쟁하다)에서 나온 단어, '경쟁자'를 영어로 쓰세요.", ans:["competitor"],
+ exp:"compete 경쟁하다 – competitor 경쟁자 – competitive 경쟁의, 경쟁적인 – competitiveness 경쟁심"},
+{sec:"3과 단어", type:"mc", q:"competitiveness의 뜻은?",
+ c:["경쟁심","경쟁자","협력","욕구"], a:0,
+ exp:"competitiveness 경쟁심. competitor 경쟁자, competitive 경쟁적인. cooperation = collaboration 협력"},
+{sec:"3과 단어", type:"mc", q:"foul weather의 뜻은?",
+ c:["맑은 날씨","궂은 날씨","더운 날씨","추운 날씨"], a:1,
+ exp:"foul 반칙, 욕설; 반칙하다; 더러운, 불쾌한 → foul weather 궂은 날씨"},
+{sec:"3과 단어", type:"mc", q:"The prize was shared ___ the three teams.",
+ c:["between","among","at","on"], a:1,
+ exp:"among은 셋 이상 사이, between은 둘 사이. three teams(세 팀)이므로 among!"},
+{sec:"3과 단어", type:"mc", q:"documentary의 뜻은?",
+ c:["서류","실제를 다루는 영상","기록하다","제복"], a:1,
+ exp:"documentary 실제(실화)를 다루는 영상. document 서류; 기록하다"},
+{sec:"3과 단어", type:"mc", q:"uniform의 뜻과 거리가 <u>먼</u> 것은?",
+ c:["제복, 유니폼","균등한, 균일한","equal, even","부가적인"], a:3,
+ exp:"uniform 제복; 균등하다, 균일하다 (= equal, even). '부가적인'은 secondary예요. cf. identical 똑같은, consistent 지속적인·일관된"},
+{sec:"3과 단어", type:"mc", q:"desire의 뜻은?",
+ c:["욕구, 바람; 간절히 원하다","경쟁심","협력","기대"], a:0,
+ exp:"desire 욕구, 바람; 간절히 원하다"},
+{sec:"3과 단어", type:"mc", q:"stand out의 뜻은?",
+ c:["눈에 띄다","서 있다","해내다","치우다"], a:0,
+ exp:"stand out 눈에 띄다 = be noticeable = be outstanding"},
+{sec:"3과 단어", type:"mc", q:"멀리 뛰는 정도가 작은 것부터 순서대로 나열한 것은?",
+ c:["hop < jump < leap","leap < jump < hop","jump < hop < leap","hop < leap < jump"], a:0,
+ exp:"hop(깡총 뜀) < jump < leap(크게 멀리 뜀). take a hop 멀리 점프하다"},
+{sec:"3과 단어", type:"mc", q:"Since it was raining, we stayed home. 에서 since의 뜻은?",
+ c:["~이래로","~때문에","만약 ~라면","비록 ~이지만"], a:1,
+ exp:"since는 '~이래로' 외에 '~때문에'(이유)의 뜻으로도 쓰여요. 비가 왔기 때문에 집에 있었다."},
+{sec:"3과 단어", type:"mc", q:"pull off의 뜻은?",
+ c:["꺼내다","해내다","치우다","밀다"], a:1,
+ exp:"pull out 꺼내다 / pull off 해내다 / pull over (한쪽으로) 치우다, 차를 길가에 세우다"},
+{sec:"3과 단어", type:"mc", q:"pull out의 뜻은?",
+ c:["꺼내다","해내다","배웅하다","조립하다"], a:0,
+ exp:"pull out 꺼내다. pull off 해내다, pull over 치우다와 헷갈리지 않게 주의!"},
+{sec:"3과 단어", type:"mc", q:"referee와 같은 뜻의 단어는?",
+ c:["judge","player","coach","competitor"], a:0,
+ exp:"referee = judge (심판)"},
+{sec:"3과 단어", type:"mc", q:"main과 같은 뜻의 단어는?",
+ c:["primary","secondary","minor","miner"], a:0,
+ exp:"main = primary 기본적인, 주된. secondary 부가적인 / minor 사소한 / miner 광부"},
+{sec:"3과 단어", type:"sa", q:"mine(광산)에서 나온 단어, '광부'를 영어로 쓰세요.", ans:["miner"],
+ exp:"mine 광산 → miner 광부. main(주된)과 철자 헷갈리지 않기!"},
+{sec:"3과 단어", type:"mc", q:"secondary의 뜻은?",
+ c:["부가적인","주된","경쟁적인","균일한"], a:0,
+ exp:"secondary 부가적인 ↔ main = primary 주된, 기본적인"},
+];
+
+let userName = "";
+let cur = 0;
+let userAnswers = [];
+
+const $ = id => document.getElementById(id);
+document.getElementById("totalCount").textContent = QUESTIONS.length;
+
+// ── 시작 ──
+$("startBtn").addEventListener("click", startQuiz);
+$("nameInput").addEventListener("keydown", e => { if (e.key === "Enter") startQuiz(); });
+$("nameInput").focus();
+
+function startQuiz() {
+  const n = $("nameInput").value.trim();
+  if (!n) { alert("이름을 입력해 주세요!"); $("nameInput").focus(); return; }
+  userName = n;
+  $("startScreen").classList.add("hidden");
+  $("quizScreen").classList.remove("hidden");
+  showQuestion();
+}
+
+let selectedChoice = null;
+
+function showQuestion() {
+  const Q = QUESTIONS[cur];
+  selectedChoice = null;
+  $("progressBar").style.width = (cur / QUESTIONS.length * 100) + "%";
+  $("sectionTag").textContent = Q.sec;
+  $("qNum").textContent = `문제 ${cur + 1} / ${QUESTIONS.length}`;
+  $("qText").innerHTML = Q.q;
+  const area = $("choiceArea");
+  area.innerHTML = "";
+  if (Q.type === "mc") {
+    Q.c.forEach((choice, i) => {
+      const b = document.createElement("button");
+      b.innerHTML = `<span class="keynum">${i + 1}</span>${choice}`;
+      b.addEventListener("click", () => selectChoice(i));
+      area.appendChild(b);
+    });
+    $("quizHint").textContent = "숫자키 1~4로 선택 → Enter로 다음 문제";
+  } else {
+    const inp = document.createElement("input");
+    inp.type = "text"; inp.id = "saInput"; inp.placeholder = "정답을 입력하세요 (영어)";
+    inp.autocomplete = "off";
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nextQuestion(); } });
+    area.appendChild(inp);
+    inp.focus();
+    $("quizHint").textContent = "입력 후 Enter!";
+  }
+}
+
+function selectChoice(i) {
+  selectedChoice = i;
+  [...$("choiceArea").querySelectorAll("button")].forEach((b, idx) =>
+    b.classList.toggle("selected", idx === i));
+}
+
+$("nextBtn").addEventListener("click", nextQuestion);
+
+function nextQuestion() {
+  const Q = QUESTIONS[cur];
+  if (Q.type === "mc") {
+    if (selectedChoice === null) { alert("보기를 선택해 주세요! (숫자키 1~4)"); return; }
+    userAnswers.push(selectedChoice);
+  } else {
+    const v = $("saInput").value.trim();
+    if (!v) { alert("정답을 입력해 주세요!"); $("saInput").focus(); return; }
+    userAnswers.push(v);
+  }
+  cur++;
+  if (cur < QUESTIONS.length) showQuestion();
+  else showResult();
+}
+
+// ── 키보드 ──
+document.addEventListener("keydown", e => {
+  if (!$("quizScreen").classList.contains("hidden")) {
+    const Q = QUESTIONS[cur];
+    if (Q && Q.type === "mc") {
+      if (["1","2","3","4"].includes(e.key)) { selectChoice(parseInt(e.key) - 1); e.preventDefault(); }
+      else if (e.key === "Enter") { e.preventDefault(); nextQuestion(); }
+    }
+  }
+});
+
+function norm(s) { return s.toLowerCase().replace(/\s+/g, " ").replace(/[.!?]+$/,"").trim(); }
+
+function isCorrect(Q, ua) {
+  if (Q.type === "mc") return ua === Q.a;
+  return Q.ans.some(a => norm(a) === norm(ua));
+}
+
+// ── 결과 ──
+function showResult() {
+  $("quizScreen").classList.add("hidden");
+  $("resultScreen").classList.remove("hidden");
+  let correct = 0;
+  const wrongList = [];
+  const review = $("reviewArea");
+  review.innerHTML = "";
+  QUESTIONS.forEach((Q, i) => {
+    const ua = userAnswers[i];
+    const ok = isCorrect(Q, ua);
+    if (ok) correct++; else wrongList.push(i + 1);
+    const div = document.createElement("div");
+    div.className = "review-item" + (ok ? " correct" : "");
+    let myAns, rightAns;
+    if (Q.type === "mc") {
+      myAns = `${ua + 1}번. ${Q.c[ua]}`;
+      rightAns = `${Q.a + 1}번. ${Q.c[Q.a]}`;
+    } else {
+      myAns = ua;
+      rightAns = Q.ans[0];
+    }
+    div.innerHTML = `
+      <div class="section-tag">${Q.sec}</div>
+      <div class="review-q">${ok ? "⭕" : "❌"} 문제 ${i + 1}. ${Q.q}</div>
+      <div class="review-line">내 답: <span class="${ok ? "right-ans" : "wrong-ans"}">${myAns}</span></div>
+      ${ok ? "" : `<div class="review-line">정답: <span class="right-ans">${rightAns}</span></div>`}
+      <div class="explain">💡 ${Q.exp}</div>`;
+    review.appendChild(div);
+  });
+  const total = QUESTIONS.length;
+  const pct = Math.round(correct / total * 100);
+  $("scoreBig").textContent = `${correct} / ${total}`;
+  $("scoreSub").textContent = `${userName} 님의 점수: ${pct}점 ${pct === 100 ? "🏆 만점!!" : pct >= 80 ? "👍 잘했어요!" : "💪 오답 해설 보고 한 번 더!"}`;
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  const msg =
+`📚 [학교 추가 프린트 변형문제 결과]
+👤 이름: ${userName}
+📅 ${dateStr}
+✅ 점수: ${correct}/${total} (${pct}점)
+${wrongList.length ? "❌ 틀린 문제: " + wrongList.join(", ") + "번" : "🏆 전부 다 맞았어요! 만점!"}
+
+지나티처 확인 부탁드려요~ 🙏`;
+
+  $("copyBtn").addEventListener("click", () => {
+    const done = () => {
+      $("copyBtn").textContent = "✅ 복사 완료! 카톡에 붙여넣으세요";
+      setTimeout(() => $("copyBtn").textContent = "📋 지나티처에게 보낼 결과 메시지 복사", 2500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).then(done).catch(() => fallbackCopy(msg, done));
+    } else fallbackCopy(msg, done);
+  });
+}
+
+function fallbackCopy(text, cb) {
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); cb(); } catch(e) { alert("복사에 실패했어요. 직접 드래그해서 복사해 주세요."); }
+  document.body.removeChild(ta);
+}
+</script>
+</body>
+</html>
