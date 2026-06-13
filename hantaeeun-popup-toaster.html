@@ -324,8 +324,8 @@ function selectChoice(i){
 function normalize(s){
   return s.toLowerCase().trim()
     .replace(/[.,!?;]/g,'')      // 문장부호 제거
-    .replace(/\s+/g,' ')          // 공백 정리
-    .replace(/’/g,"'");           // 따옴표 통일
+    .replace(/[’']/g,'')          // 어퍼스트로피 제거 (didn't=didnt 허용)
+    .replace(/\s+/g,' ');         // 공백 정리
 }
 
 function submitAnswer(){
@@ -426,7 +426,3 @@ document.addEventListener('keydown', function(e){
     e.preventDefault();
     submitAnswer();
   }
-});
-</script>
-</body>
-</html>
